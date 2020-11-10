@@ -22,12 +22,12 @@ namespace CarWarpHelper {
         { savePosBox, new BindingBoxInfo() {
           setter = k => { Properties.Settings.Default.savePosKey = k; },
           getter = () => { return Properties.Settings.Default.savePosKey; },
-          action = () => { main.SavePosButtton_Click(savePosBox, null); }
+          action = () => { main.SavePosButtton_Click_P1(savePosBox, null); }
         } },
         { loadPosBox, new BindingBoxInfo() {
           setter = k => { Properties.Settings.Default.loadPosKey = k; },
           getter = () => { return Properties.Settings.Default.loadPosKey; },
-          action = () => { main.LoadPosButton_Click(loadPosBox, null); }
+          action = () => { main.LoadPosButton_Click_P1(loadPosBox, null); }
         } },
         { lockBox, new BindingBoxInfo() {
           setter = k => { Properties.Settings.Default.lockPosKey = k; },
@@ -125,20 +125,20 @@ namespace CarWarpHelper {
     // Check which state the majority of boxes are in and invert based off of that
     private void ToggleLockPos() {
       int onCount = 0;
-      if (main.xLock.Checked) {
+      if (main.xLockP1.Checked) {
         onCount++;
       }
-      if (main.yLock.Checked) {
+      if (main.yLockP1.Checked) {
         onCount++;
       }
-      if (main.zLock.Checked) {
+      if (main.zLockP1.Checked) {
         onCount++;
       }
 
       bool newState = onCount < 2;
-      main.xLock.Checked = newState;
-      main.yLock.Checked = newState;
-      main.zLock.Checked = newState;
+      main.xLockP1.Checked = newState;
+      main.yLockP1.Checked = newState;
+      main.zLockP1.Checked = newState;
     }
   }
 }

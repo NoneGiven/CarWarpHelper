@@ -12,11 +12,13 @@ namespace CarWarpHelper {
     private int updateMS = UPDATE_OPTIONS[2];
     private readonly Timer UpdateTimer;
 
-    private readonly List<NumericUpDown> allPosInputs;
+    private readonly List<NumericUpDown> allPosInputsP1;
+    private readonly List<NumericUpDown> allPosInputsP2;
     private readonly StationManager stationMgr;
     private readonly BindingForm binds;
 
-    private Vect3F? savedPos = null;
+    private Vect3F? savedPosP1 = null;
+    private Vect3F? savedPosP2 = null;
 
     public MainForm() {
       InitializeComponent();
@@ -27,8 +29,13 @@ namespace CarWarpHelper {
       //  but needs to be at the very front at runtime for actual use
       Controls.SetChildIndex(notHookedLabel, 0);
 
-      allPosInputs = new List<NumericUpDown>() { xInput, yInput, zInput };
-      foreach (NumericUpDown input in allPosInputs) {
+      allPosInputsP1 = new List<NumericUpDown>() { xInputP1, yInputP1, zInputP1 };
+      allPosInputsP2 = new List<NumericUpDown>() { xInputP2, yInputP2, zInputP2 };
+      foreach (NumericUpDown input in allPosInputsP1) {
+        input.Minimum = decimal.MinValue;
+        input.Maximum = decimal.MaxValue;
+      }
+      foreach (NumericUpDown input in allPosInputsP2) {
         input.Minimum = decimal.MinValue;
         input.Maximum = decimal.MaxValue;
       }
@@ -64,7 +71,7 @@ namespace CarWarpHelper {
     }
 
     private bool EnsureHooked() {
-      if (!GameHook.IsHooked) {
+      if (!GameHook.IsHookedP1) {
         if (GameHook.TryHook()) {
           notHookedLabel.Visible = false;
         } else {
@@ -96,41 +103,77 @@ namespace CarWarpHelper {
         return;
       }
 
-      allPosInputs.ForEach(input => input.ValueChanged -= Position_ValueChanged);
-
+      allPosInputsP1.ForEach(input => input.ValueChanged -= Position_ValueChanged_P1);
+      
       try {
-        Vect3F pos = GameHook.Position;
+        Vect3F posP1 = GameHook.PositionP1;
 
-        if (xLock.Checked) {
-          pos.X = Convert.ToSingle(xInput.Value);
+        if (xLockP1.Checked) {
+          posP1.X = Convert.ToSingle(xInputP1.Value);
         } else {
-          xInput.Value = Convert.ToDecimal(GameHook.Position.X);
+          xInputP1.Value = Convert.ToDecimal(GameHook.PositionP1.X);
         }
 
-        if (yLock.Checked) {
-          pos.Y = Convert.ToSingle(yInput.Value);
+        if (yLockP1.Checked) {
+          posP1.Y = Convert.ToSingle(yInputP1.Value);
         } else {
-          yInput.Value = Convert.ToDecimal(GameHook.Position.Y);
+          yInputP1.Value = Convert.ToDecimal(GameHook.PositionP1.Y);
         }
 
-        if (zLock.Checked) {
-          pos.Z = Convert.ToSingle(zInput.Value);
+        if (zLockP1.Checked) {
+          posP1.Z = Convert.ToSingle(zInputP1.Value);
         } else {
-          zInput.Value = Convert.ToDecimal(GameHook.Position.Z);
+          zInputP1.Value = Convert.ToDecimal(GameHook.PositionP1.Z);
         }
 
-        if (xLock.Checked || yLock.Checked || zLock.Checked) {
-          GameHook.Position = pos;
+        if (xLockP1.Checked || yLockP1.Checked || zLockP1.Checked) {
+          GameHook.PositionP1 = posP1;
         }
 
-        allPosInputs.ForEach(input => input.Enabled = true);
+        allPosInputsP1.ForEach(input => input.Enabled = true);
 
       // Should be caused by invalid pointers - most likely you're on the main menu
       } catch (Win32Exception) {
-        allPosInputs.ForEach(input => input.Enabled = false);
+        allPosInputsP1.ForEach(input => input.Enabled = false);
       }
 
-      allPosInputs.ForEach(input => input.ValueChanged += Position_ValueChanged);
+      allPosInputsP1.ForEach(input => input.ValueChanged += Position_ValueChanged_P1);
+
+      allPosInputsP2.ForEach(input => input.ValueChanged -= Position_ValueChanged_P2);
+      
+      try {
+        Vect3F posP2 = GameHook.PositionP2;
+
+        if (xLockP2.Checked) {
+          posP2.X = Convert.ToSingle(xInputP2.Value);
+        } else {
+          xInputP2.Value = Convert.ToDecimal(GameHook.PositionP2.X);
+        }
+
+        if (yLockP2.Checked) {
+          posP2.Y = Convert.ToSingle(yInputP2.Value);
+        } else {
+          yInputP2.Value = Convert.ToDecimal(GameHook.PositionP2.Y);
+        }
+
+        if (zLockP2.Checked) {
+          posP2.Z = Convert.ToSingle(zInputP2.Value);
+        } else {
+          zInputP2.Value = Convert.ToDecimal(GameHook.PositionP2.Z);
+        }
+
+        if (xLockP2.Checked || yLockP2.Checked || zLockP2.Checked) {
+          GameHook.PositionP2 = posP2;
+        }
+
+        allPosInputsP2.ForEach(input => input.Enabled = true);
+
+      // Should be caused by invalid pointers - most likely you're on the main menu
+      } catch (Win32Exception) {
+        allPosInputsP2.ForEach(input => input.Enabled = false);
+      }
+
+      allPosInputsP2.ForEach(input => input.ValueChanged += Position_ValueChanged_P2);
     }
 
     private void KeybindMenuItem_Click(object sender, EventArgs e) {
@@ -141,17 +184,31 @@ namespace CarWarpHelper {
       }
     }
 
-    private void Position_ValueChanged(object sender, EventArgs e) {
+    private void Position_ValueChanged_P1(object sender, EventArgs e) {
       if (!EnsureHooked()) {
         return;
       }
 
       try {
-        Vect3F pos = GameHook.Position;
-        pos.X = Convert.ToSingle(xInput.Value);
-        pos.Y = Convert.ToSingle(yInput.Value);
-        pos.Z = Convert.ToSingle(zInput.Value);
-        GameHook.Position = pos;
+        Vect3F pos = GameHook.PositionP1;
+        pos.X = Convert.ToSingle(xInputP1.Value);
+        pos.Y = Convert.ToSingle(yInputP1.Value);
+        pos.Z = Convert.ToSingle(zInputP1.Value);
+        GameHook.PositionP1 = pos;
+      } catch (Win32Exception) { }
+    }
+
+    private void Position_ValueChanged_P2(object sender, EventArgs e) {
+    if (!EnsureHooked()) {
+        return;
+      }
+
+      try {
+        Vect3F pos = GameHook.PositionP2;
+        pos.X = Convert.ToSingle(xInputP2.Value);
+        pos.Y = Convert.ToSingle(yInputP2.Value);
+        pos.Z = Convert.ToSingle(zInputP2.Value);
+        GameHook.PositionP2 = pos;
       } catch (Win32Exception) { }
     }
 
@@ -162,32 +219,62 @@ namespace CarWarpHelper {
       }
     }
 
-    internal void SavePosButtton_Click(object sender, EventArgs e) {
+    internal void SavePosButtton_Click_P1(object sender, EventArgs e) {
       if (!EnsureHooked()) {
         return;
       }
 
 
       try {
-        savedPos = GameHook.Position;
-        loadPosButton.Enabled = true;
+        savedPosP1 = GameHook.PositionP1;
+        loadPosButtonP1.Enabled = true;
       } catch (Win32Exception) { }
     }
 
-    internal void LoadPosButton_Click(object sender, EventArgs e) {
+    internal void SavePosButtton_Click_P2(object sender, EventArgs e) {
       if (!EnsureHooked()) {
         return;
       }
 
-      if (savedPos.HasValue) {
-        try {
-          GameHook.Position = savedPos.Value;
 
-          allPosInputs.ForEach(input => input.ValueChanged -= Position_ValueChanged);
-          xInput.Value = Convert.ToDecimal(savedPos.Value.X);
-          yInput.Value = Convert.ToDecimal(savedPos.Value.Y);
-          zInput.Value = Convert.ToDecimal(savedPos.Value.Z);
-          allPosInputs.ForEach(input => input.ValueChanged += Position_ValueChanged);
+      try {
+        savedPosP2 = GameHook.PositionP2;
+        loadPosButtonP2.Enabled = true;
+      } catch (Win32Exception) { }
+    }
+
+    internal void LoadPosButton_Click_P1(object sender, EventArgs e) {
+      if (!EnsureHooked()) {
+        return;
+      }
+
+      if (savedPosP1.HasValue) {
+        try {
+          GameHook.PositionP1 = savedPosP1.Value;
+
+          allPosInputsP1.ForEach(input => input.ValueChanged -= Position_ValueChanged_P1);
+          xInputP1.Value = Convert.ToDecimal(savedPosP1.Value.X);
+          yInputP1.Value = Convert.ToDecimal(savedPosP1.Value.Y);
+          zInputP1.Value = Convert.ToDecimal(savedPosP1.Value.Z);
+          allPosInputsP1.ForEach(input => input.ValueChanged += Position_ValueChanged_P1);
+        } catch (Win32Exception) { }
+      }
+    }
+
+    internal void LoadPosButton_Click_P2(object sender, EventArgs e) {
+      if (!EnsureHooked()) {
+        return;
+      }
+
+      if (savedPosP2.HasValue) {
+        try {
+          GameHook.PositionP2 = savedPosP2.Value;
+
+          allPosInputsP2.ForEach(input => input.ValueChanged -= Position_ValueChanged_P2);
+          xInputP2.Value = Convert.ToDecimal(savedPosP2.Value.X);
+          yInputP2.Value = Convert.ToDecimal(savedPosP2.Value.Y);
+          zInputP2.Value = Convert.ToDecimal(savedPosP2.Value.Z);
+          allPosInputsP2.ForEach(input => input.ValueChanged += Position_ValueChanged_P2);
         } catch (Win32Exception) { }
       }
     }
@@ -242,13 +329,13 @@ namespace CarWarpHelper {
       }
 
       try {
-        GameHook.Position = stationMgr.Coords;
+        GameHook.PositionP1 = stationMgr.Coords;
 
-        allPosInputs.ForEach(input => input.ValueChanged -= Position_ValueChanged);
-        xInput.Value = Convert.ToDecimal(stationMgr.Coords.X);
-        yInput.Value = Convert.ToDecimal(stationMgr.Coords.Y);
-        zInput.Value = Convert.ToDecimal(stationMgr.Coords.Z);
-        allPosInputs.ForEach(input => input.ValueChanged += Position_ValueChanged);
+        allPosInputsP1.ForEach(input => input.ValueChanged -= Position_ValueChanged_P1);
+        xInputP1.Value = Convert.ToDecimal(stationMgr.Coords.X);
+        yInputP1.Value = Convert.ToDecimal(stationMgr.Coords.Y);
+        zInputP1.Value = Convert.ToDecimal(stationMgr.Coords.Z);
+        allPosInputsP1.ForEach(input => input.ValueChanged += Position_ValueChanged_P1);
       } catch (Win32Exception) { }
     }
   }

@@ -14,22 +14,39 @@ namespace CarWarpHelper {
 
   static class GameHook {
     private static MemManager manager = null;
-    private static Pointer posPtr = null;
+    private static Pointer posPtrP1 = null;
+    private static Pointer posPtrP2 = null;
 
-    public static bool IsHooked => manager != null && manager.IsHooked && posPtr != null;
+    public static bool IsHookedP1 => manager != null && manager.IsHooked && posPtrP1 != null;
+    public static bool IsHookedP2 => manager != null && manager.IsHooked && posPtrP2 != null;
 
-    public static Vect3F Position {
+    public static Vect3F PositionP1 {
       get {
-        if (!IsHooked && !TryHook()) {
+        if (!IsHookedP1 && !TryHook()) {
           return default;
         }
-        return manager.Read<Vect3F>(posPtr);
+        return manager.Read<Vect3F>(posPtrP1);
       }
       set {
-        if (!IsHooked && !TryHook()) {
+        if (!IsHookedP1 && !TryHook()) {
           return;
         }
-        manager.Write<Vect3F>(posPtr, value);
+        manager.Write<Vect3F>(posPtrP1, value);
+      }
+    }
+
+    public static Vect3F PositionP2 {
+      get {
+        if ((!IsHookedP1 && !TryHook()) || !IsHookedP2) {
+          return default;
+        }
+        return manager.Read<Vect3F>(posPtrP2);
+      }
+      set {
+        if ((!IsHookedP1 && !TryHook()) || !IsHookedP2) {
+          return;
+        }
+        manager.Write<Vect3F>(posPtrP2, value);
       }
     }
 
@@ -74,14 +91,15 @@ namespace CarWarpHelper {
             Don't know exact field names but this is roughly what the pointer follows:
             OakLocalPlayer -> OakPlayerController.Pawn -> CapsuleComponent/CollisionCylinder -> Location
           */
-          posPtr = new Pointer(new IntPtr(baseAddr), 0x0, 0x30, 0x488, 0x168, 0x220);
+          posPtrP1 = new Pointer(new IntPtr(baseAddr), 0x0, 0x30, 0x488, 0x168, 0x220);
+          //posPtrP2 = new Pointer(new IntPtr(baseAddr), 0x0, 0x30, 0x488, 0x168, 0x220); // sktodo
           break;
 
         } catch (Win32Exception) {
           continue;
         }
       }
-      return IsHooked;
+      return IsHookedP1;
     }
   }
 }
